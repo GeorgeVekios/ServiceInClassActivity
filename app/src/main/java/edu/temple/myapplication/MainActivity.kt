@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
 
 class MainActivity : AppCompatActivity() {
@@ -54,6 +56,48 @@ class MainActivity : AppCompatActivity() {
             if (isConnected)
                 timerBinder?.stop()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main, menu)
+        return super.onCreateOptionsMenu(menu)
+
+    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+//        when (item.itemId) {
+//            R.id.action_start -> {
+//                val binder = timerBinder
+//                if (binder != null) {
+//                    if (!binder.paused && !binder.isRunning)
+//                        binder.start(10)
+//                }
+//            }
+//        }
+//        when (item.itemId) {
+//            R.id.action_stop -> {
+//                if (isConnected)
+//                    timerBinder?.stop()
+//            }
+//        }
+        when (item.itemId) {
+            R.id.action_start -> {
+                val binder = timerBinder
+                if (binder != null) {
+                    if (!binder.paused && !binder.isRunning)
+                        binder.start(10)
+                    else {
+                        binder.pause()
+                    }
+                }
+            }
+            R.id.action_stop -> {
+                if (isConnected)
+                    timerBinder?.stop()
+            }
+            else -> return false
+        }
+
+        return super.onOptionsItemSelected(item)
     }
     override fun onDestroy() {
         if (isConnected) {
