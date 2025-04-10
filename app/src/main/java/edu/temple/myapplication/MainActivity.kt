@@ -12,10 +12,13 @@ import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
+import android.widget.TextView
+import kotlin.concurrent.timer
 
 class MainActivity : AppCompatActivity() {
     var timerBinder: TimerService.TimerBinder? = null
     var isConnected = false
+    lateinit var timerTextView: TextView
 
     val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -28,13 +31,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     val timerHandler = Handler(Looper.getMainLooper()) {
-
+        timerTextView.text = it.what.toString()
         true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
 
         bindService(
             Intent(this, TimerService::class.java),
