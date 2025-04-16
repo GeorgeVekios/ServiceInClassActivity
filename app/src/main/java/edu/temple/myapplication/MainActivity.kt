@@ -10,55 +10,57 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
-    var timerBinder: TimerService.TimerBinder? = null
-    var isConnected = false
+    private var timerBinder: TimerService.TimerBinder? = null
+    private lateinit var timerTextView: TextView
 
-    val connection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            timerBinder = service as TimerService.TimerBinder
-            isConnected = true
-        }
-        override fun onServiceDisconnected(p0: ComponentName?) {
-            isConnected = false
-        }
+    private val handler = Handler(Looper.getMainLooper()) {
+        timerTextView.text = it.what.toString()
+        true
     }
 
-    val timerHandler = Handler(Looper.getMainLooper()) {
-
-        true
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            timerBinder = binder as TimerService.TimerBinder
+            timerBinder!!.setHandler(handler)
+        }
+        override fun onServiceDisconnected(name: ComponentName?) {
+            timerBinder = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        bindService(
-            Intent(this, TimerService::class.java),
-            connection,
-            Context.BIND_AUTO_CREATE
-        )
+        timerTextView = findViewById(R.id.textView)
+        bindService(Intent(this, TimerService::class.java),
+            serviceConnection, Context.BIND_AUTO_CREATE)
 
         findViewById<Button>(R.id.startButton).setOnClickListener {
-            val binder = timerBinder
-            if(binder != null) {
-                if (!binder.paused && !binder.isRunning)
-                    binder.start(10)
-                else
-                    binder.pause()
+            timerBinder?.let { b ->
+                if (!b.isRunning && !b.paused) {
+                    val prefs = getSharedPreferences(
+                        TimerService.PREFS_NAME, MODE_PRIVATE
+                    )
+                    val saved = prefs.getInt(TimerService.KEY_REMAINING, 0)
+                    val toStart = if (saved > 0) saved else 20
+                    b.start(toStart)
+                } else {
+                    b.pause()
+                }
             }
         }
-        
+
         findViewById<Button>(R.id.stopButton).setOnClickListener {
-            if (isConnected)
-                timerBinder?.stop()
+            timerBinder?.stop()
         }
     }
+
     override fun onDestroy() {
-        if (isConnected) {
-            unbindService(connection)
-        }
         super.onDestroy()
+        unbindService(serviceConnection)
     }
 }

@@ -11,114 +11,105 @@ import android.util.Log
 class TimerService : Service() {
 
     private var isRunning = false
-
-    private var timerHandler : Handler? = null
-
-    lateinit var t: TimerThread
-
     private var paused = false
+    private var currentValue = 0
+    private var timerHandler: Handler? = null
+    private lateinit var t: TimerThread
 
     inner class TimerBinder : Binder() {
+        val isRunning: Boolean get() = this@TimerService.isRunning
+        val paused: Boolean    get() = this@TimerService.paused
 
-        // Check if Timer is already running
-        val isRunning: Boolean
-            get() = this@TimerService.isRunning
+        fun start(startValue: Int) {
 
-        // Check if Timer is paused
-        val paused: Boolean
-            get() = this@TimerService.paused
+            val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            val saved = prefs.getInt(KEY_REMAINING, 0)
 
-        // Start a new timer
-        fun start(startValue: Int){
-
-            if (!paused) {
-                if (!isRunning) {
-                    if (::t.isInitialized) t.interrupt()
-                    this@TimerService.start(startValue)
-                }
+            val toStart = if (saved > 0) {
+                saved
             } else {
-                pause()
+                startValue
+            }
+            prefs.edit().remove(KEY_REMAINING).apply()
+
+            if (isRunning) {
+                togglePause()
+            } else {
+                if (::t.isInitialized) t.interrupt()
+                startTimer(toStart)
             }
         }
 
-        // Receive updates from Service
         fun setHandler(handler: Handler) {
             timerHandler = handler
         }
 
-        // Stop a currently running timer
         fun stop() {
-            if (::t.isInitialized || isRunning) {
-                t.interrupt()
-            }
+            if (::t.isInitialized) t.interrupt()
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit().remove(KEY_REMAINING).apply()
         }
 
-        // Pause a running timer
         fun pause() {
-            this@TimerService.pause()
+            this@TimerService.togglePause()
         }
-
     }
 
-    override fun onCreate() {
-        super.onCreate()
+    override fun onBind(intent: Intent): IBinder = TimerBinder()
 
-        Log.d("TimerService status", "Created")
-    }
-
-    override fun onBind(intent: Intent): IBinder {
-        return TimerBinder()
-    }
-
-    fun start(startValue: Int) {
+    private fun startTimer(startValue: Int) {
         t = TimerThread(startValue)
         t.start()
     }
 
-    fun pause () {
-        if (::t.isInitialized) {
-            paused = !paused
-            isRunning = !paused
+    private fun togglePause() {
+        if (!::t.isInitialized) return
+
+        paused = !paused
+        isRunning = !paused
+
+        if (paused) {
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putInt(KEY_REMAINING, currentValue)
+                .apply()
+            Log.d("TimerService", "Paused at $currentValue s")
+        } else {
+            Log.d("TimerService", "Resuming from $currentValue s")
         }
     }
 
-    inner class TimerThread(private val startValue: Int) : Thread() {
+    inner class TimerThread(startValue: Int) : Thread() {
+        private var value = startValue
 
         override fun run() {
             isRunning = true
+            paused = false
             try {
-                for (i in startValue downTo 1)  {
-                    Log.d("Countdown", i.toString())
+                for (i in value downTo 1) {
+                    currentValue = i
+                    Log.d("Countdown", "$i")
 
                     timerHandler?.sendEmptyMessage(i)
 
-                    while (paused);
+                    while (paused) { Thread.yield() }
                     sleep(1000)
-
                 }
+                // finished naturally
                 isRunning = false
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .edit().remove(KEY_REMAINING).apply()
+                Log.d("TimerService", "Finished!")
             } catch (e: InterruptedException) {
-                Log.d("Timer interrupted", e.toString())
+                Log.d("TimerService", "Interrupted, stopping")
                 isRunning = false
                 paused = false
             }
         }
-
     }
 
-    override fun onUnbind(intent: Intent?): Boolean {
-        if (::t.isInitialized) {
-            t.interrupt()
-        }
-
-        return super.onUnbind(intent)
+    companion object {
+        const val PREFS_NAME     = "countdown_prefs"
+        const val KEY_REMAINING  = "remaining_time"
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-
-        Log.d("TimerService status", "Destroyed")
-    }
-
-
 }
