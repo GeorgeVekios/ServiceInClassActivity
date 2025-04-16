@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
     var timerBinder: TimerService.TimerBinder? = null
@@ -19,14 +20,17 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             timerBinder = service as TimerService.TimerBinder
             isConnected = true
+            timerBinder?.setHandler(timerHandler)
         }
         override fun onServiceDisconnected(p0: ComponentName?) {
             isConnected = false
         }
     }
 
-    val timerHandler = Handler(Looper.getMainLooper()) {
-
+    private val timerHandler = Handler(Looper.getMainLooper()) { msg ->
+        // msg.what is seconds remaining
+        // e.g. textView.text = msg.what.toString()
+        findViewById<TextView>(R.id.textView).text = msg.what.toString()
         true
     }
 
@@ -49,7 +53,7 @@ class MainActivity : AppCompatActivity() {
                     binder.pause()
             }
         }
-        
+
         findViewById<Button>(R.id.stopButton).setOnClickListener {
             if (isConnected)
                 timerBinder?.stop()

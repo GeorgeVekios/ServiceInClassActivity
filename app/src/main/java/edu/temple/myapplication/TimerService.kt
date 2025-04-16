@@ -18,6 +18,7 @@ class TimerService : Service() {
 
     private var paused = false
 
+
     inner class TimerBinder : Binder() {
 
         // Check if Timer is already running
