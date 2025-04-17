@@ -13,4 +13,12 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+    <style name="startButtonStyle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:backgroundTint">@color/teal_200</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name ="stopButtonStyle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:backgroundTint">@color/purple_200</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
 </resources>

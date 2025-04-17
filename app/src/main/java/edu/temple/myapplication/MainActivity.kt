@@ -36,6 +36,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         timerTextView = findViewById(R.id.textView)
+        val prefs = getSharedPreferences(
+            TimerService.PREFS_NAME, MODE_PRIVATE
+        )
+        timerTextView.text = prefs.getInt(TimerService.KEY_REMAINING, 0).toString()
         bindService(Intent(this, TimerService::class.java),
             serviceConnection, Context.BIND_AUTO_CREATE)
 
